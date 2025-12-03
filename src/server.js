@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import 'dotenv/config';
-import helmet from 'helmet';
+import { errors } from 'celebrate';
 import { connectMongoDB } from './db/connectMongoDB.js';
 import { logger } from './middleware/logger.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
@@ -13,10 +13,9 @@ const app = express();
 // start
 const PORT = process.env.PORT ?? 3000;
 
-// standart middleware
+// standard middleware
 app.use(logger);
 app.use(cors());
-app.use(helmet());
 app.use(express.json());
 app.use(notesRoutes);
 
@@ -24,17 +23,20 @@ app.use(notesRoutes);
 app.get('/', (req, res) => {
   res.json({
     message: 'Welcome to Notes API 🚀',
-    availableRoutes: ['/notes', '/notes/:noteId']
+    availableRoutes: ['/notes', '/notes/:noteId'],
   });
 });
 
-
 // 404 неіснуючі маршрути
 app.use(notFoundHandler);
+
+// celebrate errors middleware
+app.use(errors());
+
 // error handler
 app.use(errorHandler);
 
-//  start & conect to db
+// start & connect to db
 await connectMongoDB();
 
 app.listen(PORT, () => {
