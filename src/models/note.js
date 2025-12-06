@@ -40,4 +40,3 @@ noteSchema.index(
 );
 
 export const Note = model('Note', noteSchema);
-
