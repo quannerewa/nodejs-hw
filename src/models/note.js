@@ -15,10 +15,9 @@ const noteSchema = new Schema(
     },
     tag: {
       type: String,
-      enum: TAGS,
+      enum: [...TAGS],
       default: 'Todo',
     },
-
     userId: {
       type: Schema.Types.ObjectId,
       ref: 'User',
@@ -27,10 +26,18 @@ const noteSchema = new Schema(
   },
   {
     timestamps: true,
-  }
+    versionKey: false,
+  },
 );
 
-noteSchema.index({ title: 'text', content: 'text' });
+noteSchema.index(
+  { title: 'text', content: 'text' },
+  {
+    name: 'NoteTextIndex',
+    weights: { title: 10, content: 2 },
+    default_language: 'english',
+  },
+);
 
 export const Note = model('Note', noteSchema);
 

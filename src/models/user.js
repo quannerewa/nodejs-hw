@@ -15,10 +15,9 @@ const userSchema = new Schema(
     password: {
       type: String,
       required: true,
-      minLength: 8,
     },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 userSchema.pre('save', function (next) {
