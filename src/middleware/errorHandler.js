@@ -1,32 +1,34 @@
-import { isCelebrateError } from "celebrate";
-import { HttpError } from "http-errors";
+import createHttpError from 'http-errors';
+import { Session } from '../models/session.js';
+import { User } from '../models/user.js';
 
-export const errorHandler = (err, req, res, next) => {
-  console.error("Error Middleware:", err);
-
-  if (isCelebrateError(err)) {
-    const segment = ["body", "query", "params", "headers"]
-      .map(k => err.details.get(k))
-      .find(v => v);
-
-    return res.status(400).json({
-      message: segment.message,
-      details: segment.details,
-    });
+export const authenticate = async (req, res, next) => {
+  if (!req.cookies.accessToken) {
+    return next(createHttpError(401, 'Missing access token'));
   }
 
-
-  if (err instanceof HttpError) {
-    return res.status(err.status).json({
-      message: err.message || err.name,
-    });
-  }
-
-  const isProd = process.env.NODE_ENV === "production";
-
-  res.status(500).json({
-    message: isProd
-      ? "Something went wrong. Please try again later."
-      : err.message,
+  const session = await Session.findOne({
+    accessToken: req.cookies.accessToken,
   });
+
+  if (!session) {
+    return next(createHttpError(401, 'Session not found'));
+  }
+
+  const isAccessTokenExpired =
+    new Date() > new Date(session.accessTokenValidUntil);
+
+  if (isAccessTokenExpired) {
+    return next(createHttpError(401, 'Access token expired'));
+  }
+
+  const user = await User.findById(session.userId);
+
+  if (!user) {
+    return next(createHttpError(401));
+  }
+
+  req.user = user;
+
+  next();
 };
