@@ -7,16 +7,10 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
-/*
-console.log({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET ? '******' : null
-});
-*/
+
 
 export async function saveFileToCloudinary(buffer) {
-  //console.log;
+
 
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
@@ -34,9 +28,8 @@ export async function saveFileToCloudinary(buffer) {
     readable._read = () => {};
     readable.push(buffer);
     readable.push(null);
-
     readable.pipe(uploadStream);
-    //console.log;
+
 
   });
 }
