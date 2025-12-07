@@ -9,6 +9,8 @@ import { createSession, setSessionCookies } from '../services/auth.js';
 import { Session } from '../models/session.js';
 import { sendMail } from '../utils/sendMail.js';
 
+// ======================= REGISTER =========================
+
 export const registerUser = async (req, res, next) => {
   const { email, password } = req.body;
 
@@ -26,11 +28,12 @@ export const registerUser = async (req, res, next) => {
   });
 
   const newSession = await createSession(newUser._id);
-
   setSessionCookies(res, newSession);
 
   res.status(201).json(newUser);
 };
+
+// ======================= LOGIN =========================
 
 export const loginUser = async (req, res, next) => {
   const { email, password } = req.body;
@@ -50,11 +53,12 @@ export const loginUser = async (req, res, next) => {
   await Session.deleteOne({ userId: user._id });
 
   const newSession = await createSession(user._id);
-
   setSessionCookies(res, newSession);
 
   res.status(200).json(user);
 };
+
+// ======================= LOGOUT =========================
 
 export const logoutUser = async (req, res) => {
   const { sessionId } = req.cookies;
@@ -70,6 +74,8 @@ export const logoutUser = async (req, res) => {
   res.status(204).send();
 };
 
+// ======================= REFRESH SESSION =========================
+
 export const refreshUserSession = async (req, res, next) => {
   const session = await Session.findOne({
     _id: req.cookies.sessionId,
@@ -80,10 +86,9 @@ export const refreshUserSession = async (req, res, next) => {
     return next(createHttpError(401, 'Session not found'));
   }
 
-  const isSessionTokenExpired =
-    new Date() > new Date(session.refreshTokenValidUntil);
+  const isExpired = new Date() > new Date(session.refreshTokenValidUntil);
 
-  if (isSessionTokenExpired) {
+  if (isExpired) {
     return next(createHttpError(401, 'Session token expired'));
   }
 
@@ -98,11 +103,14 @@ export const refreshUserSession = async (req, res, next) => {
   res.status(200).json({ message: 'Session refreshed' });
 };
 
+// ======================= REQUEST RESET EMAIL =========================
+
 export const requestResetEmail = async (req, res, next) => {
   const { email } = req.body;
 
   const user = await User.findOne({ email });
 
+  // навіть якщо юзера нема, повертаємо 200 (безпека)
   if (!user) {
     return res
       .status(200)
@@ -121,6 +129,7 @@ export const requestResetEmail = async (req, res, next) => {
   const templatePath = path.resolve('src/templates/reset-password-email.html');
   const templateSource = await fs.readFile(templatePath, 'utf-8');
   const template = handlebars.compile(templateSource);
+
   const html = template({
     name: user.username,
     link: `${process.env.FRONTEND_DOMAIN}/reset-password?token=${resetToken}`,
@@ -142,6 +151,8 @@ export const requestResetEmail = async (req, res, next) => {
   res.status(200).json({ message: 'Password reset email sent successfully' });
 };
 
+// ======================= RESET PASSWORD =========================
+
 export const resetPassword = async (req, res, next) => {
   const { token, password } = req.body;
 
@@ -159,8 +170,8 @@ export const resetPassword = async (req, res, next) => {
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  await User.updateOne({ _id: user._id }, { password: hashedPassword });
 
+  await User.updateOne({ _id: user._id }, { password: hashedPassword });
   await Session.deleteMany({ userId: user._id });
 
   res.status(200).json({ message: 'Password reset successfully' });
